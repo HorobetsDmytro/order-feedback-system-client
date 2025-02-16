@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ordersService } from '../../services/api';
+import { Box, Typography, List, ListItem, ListItemText, Divider, Alert } from '@mui/material';
 
 const OrderList = () => {
     const [orders, setOrders] = useState([]);
@@ -13,7 +14,7 @@ const OrderList = () => {
                 const response = await ordersService.getUserOrders();
                 setOrders(response.data);
             } catch (err) {
-                setError('Failed to fetch orders');
+                setError('Не вдалося завантажити замовлення');
             } finally {
                 setLoading(false);
             }
@@ -22,39 +23,44 @@ const OrderList = () => {
         fetchOrders();
     }, []);
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div className="text-red-500">{error}</div>;
+    if (loading) return <Box sx={{ textAlign: 'center', mt: 4 }}>Завантаження...</Box>;
+    if (error) return <Alert severity="error">{error}</Alert>;
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <h1 className="text-2xl font-bold mb-6">Your Orders</h1>
+        <Box sx={{ p: 4 }}>
+            <Typography variant="h4" gutterBottom>
+                Мої замовлення
+            </Typography>
             {orders.length === 0 ? (
-                <p>No orders found</p>
+                <Typography>У вас немає замовлень</Typography>
             ) : (
-                <div className="grid gap-4">
-                    {orders.map(order => (
-                        <div key={order.id} className="border rounded-lg p-4">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-semibold">Order #{order.orderNumber}</h3>
-                                    <p className="text-gray-600">
-                                        Status: {order.status}
-                                    </p>
-                                    <p className="text-gray-600">
-                                        Total: ${order.totalAmount}
-                                    </p>
-                                </div>
-                                <Link
-                                    to={`/orders/${order.id}`}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                                >
-                                    View Details
-                                </Link>
-                            </div>
-                        </div>
+                <List>
+                    {orders.map((order) => (
+                        <React.Fragment key={order.id}>
+                            <ListItem
+                                component={Link}
+                                to={`/orders/${order.id}`}
+                                sx={{
+                                    textDecoration: 'none',
+                                    '&:hover': { backgroundColor: '#f5f5f5' },
+                                }}
+                            >
+                                <ListItemText
+                                    primary={`Замовлення #${order.orderNumber}`}
+                                    secondary={
+                                        <>
+                                            Статус: {order.status} | Дата: {new Date(order.createdAt).toLocaleDateString()} | Сума: ${order.totalAmount}
+                                        </>
+                                    }
+                                />
+                            </ListItem>
+                            <Divider />
+                        </React.Fragment>
                     ))}
-                </div>
+                </List>
             )}
-        </div>
+        </Box>
     );
 };
+
+export default OrderList;

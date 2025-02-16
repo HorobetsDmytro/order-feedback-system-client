@@ -29,12 +29,12 @@ export const authService = {
 };
 
 export const productsService = {
-    getAll: () => api.get('/products'),
+    getAll: (filters) => api.get('/products', { params: filters }),
     getById: (id) => api.get(`/products/${id}`),
     create: (product) => api.post('/products', product),
     update: (id, product) => api.put(`/products/${id}`, product),
     delete: (id) => api.delete(`/products/${id}`),
-    updateStock: (id, quantity) => api.post(`/products/${id}/stock`, { quantity })
+    updateStock: (id, quantity) => api.post(`/products/${id}/stock`, { quantity }),
 };
 
 export const ordersService = {

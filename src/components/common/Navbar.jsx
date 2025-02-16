@@ -1,65 +1,57 @@
 import React from 'react';
+import { AppBar, Toolbar, Typography, Button, IconButton, Badge } from '@mui/material';
+import { ShoppingCart } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../../store/slices/authSlice';
 
 const Navbar = () => {
     const navigate = useNavigate();
-    const token = localStorage.getItem('token');
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth);
+    const { items } = useSelector((state) => state.cart);
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        dispatch(logout());
         navigate('/login');
     };
 
     return (
-        <nav className="bg-white shadow-lg">
-            <div className="container mx-auto px-4">
-                <div className="flex justify-between items-center h-16">
-                    <div className="flex items-center space-x-8">
-                        <Link to="/" className="text-xl font-bold text-gray-800">
-                            OrderSystem
-                        </Link>
-                        <Link to="/products" className="text-gray-600 hover:text-gray-800">
-                            Products
-                        </Link>
-                        {token && (
-                            <>
-                                <Link to="/orders" className="text-gray-600 hover:text-gray-800">
-                                    Orders
-                                </Link>
-                                <Link to="/cart" className="text-gray-600 hover:text-gray-800">
-                                    Cart
-                                </Link>
-                            </>
-                        )}
-                    </div>
-                    <div>
-                        {token ? (
-                            <button
-                                onClick={handleLogout}
-                                className="text-gray-600 hover:text-gray-800"
-                            >
-                                Logout
-                            </button>
-                        ) : (
-                            <div className="space-x-4">
-                                <Link
-                                    to="/login"
-                                    className="text-gray-600 hover:text-gray-800"
-                                >
-                                    Login
-                                </Link>
-                                <Link
-                                    to="/register"
-                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                                >
-                                    Register
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </nav>
+        <AppBar position="static">
+            <Toolbar>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                    Система Замовлень
+                </Typography>
+                <Button color="inherit" component={Link} to="/products">
+                    Товари
+                </Button>
+                {user && (
+                    <>
+                        <Button color="inherit" component={Link} to="/orders">
+                            Мої замовлення
+                        </Button>
+                        <IconButton color="inherit" component={Link} to="/cart">
+                            <Badge badgeContent={items?.length} color="error">
+                                <ShoppingCart />
+                            </Badge>
+                        </IconButton>
+                        <Button color="inherit" onClick={handleLogout}>
+                            Вийти
+                        </Button>
+                    </>
+                )}
+                {!user && (
+                    <>
+                        <Button color="inherit" component={Link} to="/login">
+                            Увійти
+                        </Button>
+                        <Button color="inherit" component={Link} to="/register">
+                            Зареєструватися
+                        </Button>
+                    </>
+                )}
+            </Toolbar>
+        </AppBar>
     );
 };
 

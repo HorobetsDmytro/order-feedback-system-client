@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box, Typography, Button } from '@mui/material';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -6,31 +7,31 @@ class ErrorBoundary extends React.Component {
         this.state = { hasError: false };
     }
 
-    static getDerivedStateFromError(error) {
+    static getDerivedStateFromError() {
         return { hasError: true };
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error('Error:', error);
-        console.error('Error Info:', errorInfo);
+        console.error('Помилка:', error);
+        console.error('Інформація про помилку:', errorInfo);
     }
 
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                    <div className="text-center">
-                        <h1 className="text-2xl font-bold text-gray-800 mb-4">
-                            Something went wrong
-                        </h1>
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                        >
-                            Reload Page
-                        </button>
-                    </div>
-                </div>
+                <Box sx={{ textAlign: 'center', p: 4 }}>
+                    <Typography variant="h5" color="error">
+                        Щось пішло не так.
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => window.location.reload()}
+                        sx={{ mt: 2 }}
+                    >
+                        Перезавантажити сторінку
+                    </Button>
+                </Box>
             );
         }
 
