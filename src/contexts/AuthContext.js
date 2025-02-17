@@ -1,52 +1,69 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setUser, setLoading, logout } from '../store/slices/authSlice';
 import { authService } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth); // Отримуємо дані користувача з Redux
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
             authService.getCurrentUser()
-                .then(response => setUser(response.data))
-                .finally(() => setLoading(false));
-            setLoading(false);
+                .then(response => {
+                    console.log('Setting user:', response.data); // Логування для перевірки
+                    dispatch(setUser(response.data)); // Оновлюємо стан Redux
+                })
+                .catch(err => {
+                    console.error('Failed to fetch current user:', err);
+                    dispatch(logout()); // Якщо токен недійсний, виходимо
+                })
+                .finally(() => dispatch(setLoading(false)));
         } else {
-            setLoading(false);
+            dispatch(setLoading(false));
         }
-    }, []);
+    }, [dispatch]);
 
     const login = async (credentials) => {
-        const response = await authService.login(credentials);
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data.user);
-        return response;
+        try {
+            const response = await authService.login(credentials);
+            localStorage.setItem('token', response.data.token);
+            dispatch(setUser(response.data.user)); // Оновлюємо стан Redux
+            return response;
+        } catch (err) {
+            console.error('Login failed:', err);
+            throw err; // Передаємо помилку далі
+        }
     };
 
     const register = async (userData) => {
-        const response = await authService.register(userData);
-        return response;
+        try {
+            const response = await authService.register(userData);
+            return response;
+        } catch (err) {
+            console.error('Registration failed:', err);
+            throw err; // Передаємо помилку далі
+        }
     };
 
-    const logout = () => {
+    const handleLogout = () => {
         localStorage.removeItem('token');
-        setUser(null);
+        dispatch(logout()); // Скидаємо стан Redux
     };
 
     const value = {
         user,
         login,
         register,
-        logout,
-        loading
+        logout: handleLogout,
     };
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

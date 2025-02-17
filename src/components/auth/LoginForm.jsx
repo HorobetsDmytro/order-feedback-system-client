@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/api';
+import {setUser} from "../../store/slices/authSlice";
+import {useDispatch} from "react-redux";
 
 const LoginForm = () => {
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
@@ -17,9 +20,17 @@ const LoginForm = () => {
         try {
             const response = await authService.login(formData);
             localStorage.setItem('token', response.data.token);
+
+            // Передаємо всі дані користувача у Redux
+            dispatch(setUser({
+                username: response.data.username,
+                email: response.data.email,
+                role: response.data.role
+            }));
+
             navigate('/products');
         } catch (err) {
-            setError('Невірні дані');
+            setError('Invalid credentials');
         }
     };
 

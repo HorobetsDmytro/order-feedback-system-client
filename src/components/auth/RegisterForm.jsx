@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/api';
+import {useDispatch} from "react-redux";
+import {setUser} from "../../store/slices/authSlice";
 
 const RegisterForm = () => {
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ username: '', email: '', password: '' });
     const [error, setError] = useState('');
@@ -15,10 +18,12 @@ const RegisterForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await authService.register(formData);
-            navigate('/login');
+            const response = await authService.register(formData);
+            localStorage.setItem('token', response.data.token); // ✅ Зберігаємо токен
+            dispatch(setUser(response.data)); // ✅ Встановлюємо користувача у Redux
+            navigate('/'); // ✅ Перенаправлення на головну
         } catch (err) {
-            setError(err.response?.data || 'Помилка реєстрації');
+            setError(err.response?.data || 'Registration failed');
         }
     };
 

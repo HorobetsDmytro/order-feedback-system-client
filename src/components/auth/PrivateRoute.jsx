@@ -1,12 +1,16 @@
-import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-const PrivateRoute = ({ children }) => {
-    const token = localStorage.getItem('token');
+const PrivateRoute = ({ children, roles = [] }) => {
+    const { user } = useSelector((state) => state.auth);
     const location = useLocation();
 
-    if (!token) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+    if (!user) {
+        return <Navigate to="/" replace state={{ from: location }} />;
+    }
+
+    if (roles.length > 0 && !roles.includes(user.role)) {
+        return <Navigate to="/" replace />;
     }
 
     return children;

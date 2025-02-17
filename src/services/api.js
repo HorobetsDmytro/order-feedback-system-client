@@ -15,9 +15,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response.status === 401) {
+        if (error.response?.status === 401) {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            window.location.href = '/';
         }
         return Promise.reject(error);
     }
@@ -25,7 +25,8 @@ api.interceptors.response.use(
 
 export const authService = {
     login: (credentials) => api.post('/auth/login', credentials),
-    register: (userData) => api.post('/auth/register', userData)
+    register: (userData) => api.post('/auth/register', userData),
+    getCurrentUser: () => api.get('/auth/current')
 };
 
 export const productsService = {

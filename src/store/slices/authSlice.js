@@ -6,7 +6,7 @@ const authSlice = createSlice({
         token: localStorage.getItem('token'),
         user: null,
         loading: false,
-        error: null
+        error: null,
     },
     reducers: {
         setToken: (state, action) => {
@@ -18,7 +18,9 @@ const authSlice = createSlice({
             }
         },
         setUser: (state, action) => {
+            console.log('Updating user in Redux:', action.payload);
             state.user = action.payload;
+            state.token = action.payload?.token || null;
         },
         setLoading: (state, action) => {
             state.loading = action.payload;
@@ -30,8 +32,8 @@ const authSlice = createSlice({
             state.token = null;
             state.user = null;
             localStorage.removeItem('token');
-        }
-    }
+        },
+    },
 });
 
 export const { setToken, setUser, setLoading, setError, logout } = authSlice.actions;
