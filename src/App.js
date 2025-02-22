@@ -3,7 +3,6 @@ import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom
 import Navbar from "./components/common/Navbar";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
-import ProductList from "./components/products/ProductList";
 import ProductDetails from "./components/products/ProductDetails";
 import OrderList from "./components/orders/OrderList";
 import OrderDetails from "./components/orders/OrderDetails";
@@ -14,6 +13,9 @@ import HomePage from "./components/HomePage";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import {ThemeProvider} from "@mui/material";
 import theme from './theme';
+import AdminProductsPage from "./components/admin/AdminProductsPage";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   return (
@@ -59,8 +61,16 @@ const App = () => {
                               </PrivateRoute>
                           }
                       />
-                      <Route path="/" element={ <ProductList/> }/>
+                      <Route
+                          path="/admin/products"
+                          element={
+                              <PrivateRoute roles={['Admin']}>
+                                  <AdminProductsPage />
+                              </PrivateRoute>
+                          }
+                      />
                   </Routes>
+                  <ToastContainer />
               </ErrorBoundary>
           </Router>
       </ThemeProvider>

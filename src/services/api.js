@@ -32,10 +32,14 @@ export const authService = {
 export const productsService = {
     getAll: (filters) => api.get('/products', { params: filters }),
     getById: (id) => api.get(`/products/${id}`),
-    create: (product) => api.post('/products', product),
-    update: (id, product) => api.put(`/products/${id}`, product),
+    create: (formData) => api.post('/products', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    update: (id, formData) => api.put(`/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
     delete: (id) => api.delete(`/products/${id}`),
-    updateStock: (id, quantity) => api.post(`/products/${id}/stock`, { quantity }),
+    updateStock: (id, quantity) => api.post(`/products/${id}/stock`, { quantity })
 };
 
 export const ordersService = {

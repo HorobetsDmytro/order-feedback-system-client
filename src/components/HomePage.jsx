@@ -2,47 +2,80 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, TextField, Select, MenuItem, Pagination, Grid } from '@mui/material';
 import ProductCard from './products/ProductCard';
 import { productsService } from '../services/api';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { debounce } from 'lodash';
 
 const HomePage = () => {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filters, setFilters] = useState({
-        search: '',
-        minPrice: '',
-        maxPrice: '',
-        sortBy: 'name', // name, price
-        sortOrder: 'asc', // asc, desc
+        search: searchParams.get('search') || '',
+        minPrice: searchParams.get('minPrice') || '',
+        maxPrice: searchParams.get('maxPrice') || '',
+        sortBy: searchParams.get('sortBy') || 'name',
+        sortOrder: searchParams.get('sortOrder') || 'asc',
     });
-    const [page, setPage] = useState(1); // Поточна сторінка
-    const [totalPages, setTotalPages] = useState(1); // Загальна кількість сторінок
-    const itemsPerPage = 9; // Кількість товарів на сторінці (3 ряди по 3 товари)
+    const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 9;
+
+    const debouncedFetch = debounce(fetchProducts, 300);
 
     useEffect(() => {
-        fetchProducts();
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value) params.set(key, value);
+        });
+        params.set('page', page.toString());
+        setSearchParams(params);
+
+        debouncedFetch();
+
+        return () => {
+            debouncedFetch.cancel();
+        };
     }, [filters, page]);
 
-    const fetchProducts = async () => {
+    async function fetchProducts() {
+        setLoading(true);
         try {
-            const response = await productsService.getAll({
-                ...filters,
+            const params = {
+                search: filters.search?.trim() || null,
+                minPrice: filters.minPrice ? Number(filters.minPrice) : null,
+                maxPrice: filters.maxPrice ? Number(filters.maxPrice) : null,
+                sortBy: filters.sortBy,
+                sortOrder: filters.sortOrder,
                 page,
                 limit: itemsPerPage,
-            });
-            setProducts(response.data.items);
-            setTotalPages(Math.ceil(response.data.totalCount / itemsPerPage));
-            setError('');
+            };
+
+            const response = await productsService.getAll(params);
+
+            if (response.data && Array.isArray(response.data.items)) {
+                setProducts(response.data.items);
+                setTotalPages(Math.ceil(response.data.totalCount / itemsPerPage));
+                setError('');
+            } else {
+                throw new Error('Некоректні дані від сервера');
+            }
         } catch (err) {
+            console.error('❌ Помилка при завантаженні товарів:', err);
             setError('Не вдалося завантажити товари');
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
-        setFilters((prev) => ({ ...prev, [name]: value }));
-        setPage(1); // Скидаємо сторінку при зміні фільтрів
+        setFilters(prev => ({
+            ...prev,
+            [name]: value,
+        }));
+        setPage(1);
     };
 
     const handlePageChange = (event, newPage) => {
@@ -50,17 +83,14 @@ const HomePage = () => {
     };
 
     if (loading) return <Box sx={{ textAlign: 'center', mt: 4 }}>Завантаження...</Box>;
-    if (error) return <Box sx={{ textAlign: 'center', mt: 4 }}>{error}</Box>;
+    if (error) return <Box sx={{ textAlign: 'center', mt: 4, color: 'error.main' }}>{error}</Box>;
 
     return (
         <Box sx={{ display: 'flex', p: 4 }}>
-            {/* Ліва панель з фільтрами */}
-            <Box sx={{ width: 250, mr: 4 }}>
+            <Box sx={{ width: 300, mr: 4 }}>
                 <Typography variant="h6" gutterBottom>
                     Фільтри
                 </Typography>
-
-                {/* Пошук */}
                 <TextField
                     fullWidth
                     label="Пошук"
@@ -69,11 +99,9 @@ const HomePage = () => {
                     onChange={handleFilterChange}
                     sx={{ mb: 2 }}
                 />
-
-                {/* Ціновий діапазон */}
                 <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <TextField
-                        label="Мінімальна ціна"
+                        label="Мін. ціна"
                         name="minPrice"
                         type="number"
                         value={filters.minPrice}
@@ -81,7 +109,7 @@ const HomePage = () => {
                         sx={{ flex: 1 }}
                     />
                     <TextField
-                        label="Максимальна ціна"
+                        label="Макс. ціна"
                         name="maxPrice"
                         type="number"
                         value={filters.maxPrice}
@@ -89,8 +117,6 @@ const HomePage = () => {
                         sx={{ flex: 1 }}
                     />
                 </Box>
-
-                {/* Сортування */}
                 <Select
                     fullWidth
                     name="sortBy"
@@ -106,28 +132,37 @@ const HomePage = () => {
                     name="sortOrder"
                     value={filters.sortOrder}
                     onChange={handleFilterChange}
+                    sx={{ mb: 2 }}
                 >
                     <MenuItem value="asc">За зростанням</MenuItem>
                     <MenuItem value="desc">За спаданням</MenuItem>
                 </Select>
             </Box>
 
-            {/* Головна частина з товарами */}
             <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h4" gutterBottom>
-                    Товари
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h4">
+                        Товари
+                    </Typography>
+                </Box>
 
-                {/* Список товарів */}
-                <Grid container spacing={4}>
+                <Grid container spacing={3}>
                     {products.map((product) => (
                         <Grid item xs={12} sm={6} md={4} key={product.id}>
-                            <ProductCard product={product} />
+                            <ProductCard
+                                product={product}
+                                onDetailsClick={() => navigate(`/products/${product.id}`)}
+                            />
                         </Grid>
                     ))}
                 </Grid>
 
-                {/* Пагінація */}
+                {products.length === 0 && !loading && (
+                    <Typography variant="h6" sx={{ textAlign: 'center', mt: 4 }}>
+                        Товарів не знайдено
+                    </Typography>
+                )}
+
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                     <Pagination
                         count={totalPages}
