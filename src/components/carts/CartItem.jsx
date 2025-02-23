@@ -1,31 +1,46 @@
 import React from 'react';
-import { Box, Typography, Button, IconButton } from '@mui/material';
+import { Box, Typography, Button, IconButton, Paper } from '@mui/material';
 import { Remove, Add, Delete } from '@mui/icons-material';
 
 const CartItem = ({ item, onQuantityChange, onRemove }) => {
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Paper
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                p: 2
+            }}
+        >
             <Box>
-                <Typography variant="h6">{item.product?.name}</Typography>
-                <Typography variant="body2">Ціна: ${item.price}</Typography>
+                <Typography variant="h6" fontWeight="bold">{item.product?.name}</Typography>
+                <Typography variant="body2" color="textSecondary">Ціна: ${item.price}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <IconButton onClick={() => onQuantityChange(item.productId, item.quantity - 1)} disabled={item.quantity <= 1}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconButton
+                    onClick={() => onQuantityChange(item.productId, item.quantity - 1)}
+                    disabled={item.quantity <= 1}
+                    sx={{ border: '1px solid #ccc', borderRadius: '50%' }}
+                >
                     <Remove />
                 </IconButton>
-                <Typography>{item.quantity}</Typography>
-                <IconButton onClick={() => onQuantityChange(item.productId, item.quantity + 1)}>
+                <Typography fontWeight="bold">{item.quantity}</Typography>
+                <IconButton
+                    onClick={() => onQuantityChange(item.productId, item.quantity + 1)}
+                    sx={{ border: '1px solid #ccc', borderRadius: '50%' }}
+                >
                     <Add />
                 </IconButton>
                 <Button
                     color="error"
                     startIcon={<Delete />}
                     onClick={() => onRemove(item.productId)}
+                    sx={{ borderRadius: 3 }}
                 >
                     Видалити
                 </Button>
             </Box>
-        </Box>
+        </Paper>
     );
 };
 

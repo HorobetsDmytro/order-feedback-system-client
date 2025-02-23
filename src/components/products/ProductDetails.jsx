@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { productsService, reviewsService } from '../../services/api';
+import { productsService, reviewsService, cartService } from '../../services/api';
 import {
     Box,
     Typography,
@@ -28,7 +28,6 @@ const ProductDetails = () => {
     const [error, setError] = useState('');
     const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
     const [submitting, setSubmitting] = useState(false);
-
     const { user } = useAuth();
 
     useEffect(() => {
@@ -61,12 +60,10 @@ const ProductDetails = () => {
             toast.error('Будь ласка, увійдіть, щоб залишити відгук');
             return;
         }
-
         if (!reviewForm.comment.trim()) {
             toast.warning('Будь ласка, введіть коментар');
             return;
         }
-
         setSubmitting(true);
         try {
             await reviewsService.create({
@@ -87,13 +84,28 @@ const ProductDetails = () => {
         }
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!user) {
             toast.error('Будь ласка, увійдіть, щоб додати товар до кошика');
             return;
         }
+        if (product.stock <= 0) {
+            toast.error('Товар немає в наявності');
+            return;
+        }
 
-        toast.success('Товар додано до кошика!');
+        try {
+            // Викликаємо метод addItem з cartService
+            await cartService.addItem(product.id, 1); // Додаємо один екземпляр товару
+            toast.success('Товар додано до кошика!', {
+                autoClose: 1500,
+                closeOnClick: true,
+                pauseOnHover: false
+            });
+        } catch (err) {
+            console.error('Помилка при додаванні товару до кошика:', err);
+            toast.error('Не вдалося додати товар до кошика');
+        }
     };
 
     if (loading) return <CircularProgress />;
@@ -123,7 +135,6 @@ const ProductDetails = () => {
                         }}
                     />
                 </Grid>
-
                 <Grid item xs={12} md={6}>
                     <Typography variant="h4" gutterBottom>
                         {product.name}
@@ -137,14 +148,12 @@ const ProductDetails = () => {
                     <Typography variant="body1" sx={{ fontWeight: "bold", mb: 2 }}>
                         Наявність: {product.stock > 0 ? 'Є в наявності' : 'Немає в наявності'}
                     </Typography>
-
                     {rating !== null && (
                         <Box sx={{ mt: 2 }}>
                             <Typography>Середня оцінка: {rating.toFixed(1)}/5</Typography>
                             <Rating value={rating} precision={0.1} readOnly />
                         </Box>
                     )}
-
                     <Button
                         variant="contained"
                         color="primary"
@@ -156,7 +165,6 @@ const ProductDetails = () => {
                     </Button>
                 </Grid>
             </Grid>
-
             <Box sx={{ mt: 4 }}>
                 <Typography variant="h6">Залишити відгук</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -187,7 +195,6 @@ const ProductDetails = () => {
                     {submitting ? 'Надсилаємо...' : 'Залишити відгук'}
                 </Button>
             </Box>
-
             <Box sx={{ mt: 4 }}>
                 <Typography variant="h6">Відгуки</Typography>
                 {reviews.length > 0 ? (

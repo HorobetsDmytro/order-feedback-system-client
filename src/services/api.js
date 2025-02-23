@@ -53,7 +53,8 @@ export const cartService = {
     getCart: () => api.get('/cart'),
     addItem: (productId, quantity) => api.post('/cart/items', { productId, quantity }),
     updateQuantity: (productId, quantity) => api.put(`/cart/items/${productId}`, { quantity }),
-    removeItem: (productId) => api.delete(`/cart/items/${productId}`)
+    removeItem: (productId) => api.delete(`/cart/items/${productId}`),
+    clearCart: () => api.delete('/cart/clear')
 };
 
 export const reviewsService = {

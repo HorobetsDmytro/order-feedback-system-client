@@ -1,15 +1,13 @@
-// components/cart/Cart.jsx
 import React, { useEffect, useState } from 'react';
-import { cartService } from '../../services/api';
-import { useNavigate } from 'react-router-dom';
+import { cartService, ordersService } from '../../services/api';
 import CartItem from "./CartItem";
-import {Button, Typography} from "@mui/material";
+import { Button, Typography, Paper, Box, CircularProgress, Alert } from "@mui/material";
 
 const Cart = () => {
-    const navigate = useNavigate();
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
         fetchCart();
@@ -48,24 +46,40 @@ const Cart = () => {
         return cart?.items.reduce((total, item) => total + (item.price * item.quantity), 0) || 0;
     };
 
-    const handleCheckout = () => {
-        const orderItems = cart.items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity
-        }));
+    const handleCheckout = async () => {
+        if (!cart?.items || cart.items.length === 0) {
+            setError('Кошик порожній. Додайте товари перед оформленням замовлення.');
+            return;
+        }
 
-        navigate('/checkout', { state: { orderItems } });
+        try {
+            const orderItems = cart.items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity
+            }));
+
+            await ordersService.create(orderItems);
+
+            await cartService.clearCart();
+            fetchCart();
+
+            setSuccessMessage('Замовлення успішно створено!');
+            setError('');
+        } catch (err) {
+            console.error('Не вдалося створити замовлення:', err);
+            setError('Сталася помилка при створенні замовлення.');
+            setSuccessMessage('');
+        }
     };
 
-    if (loading) return <div>Завантаження...</div>;
-    if (error) return <div>{error}</div>;
+    if (loading) return <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>;
+    if (error) return <Typography color="error" textAlign="center">{error}</Typography>;
 
     return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-4">Кошик</h1>
-
+        <Box maxWidth="800px" mx="auto" mt={4} p={3} component={Paper} elevation={3} borderRadius={2}>
+            <Typography variant="h4" fontWeight="bold" mb={2} textAlign="center">🛒 Ваш кошик</Typography>
             {(!cart?.items || cart.items.length === 0) ? (
-                <p>Ваш кошик порожній</p>
+                <Typography variant="h6" textAlign="center" color="textSecondary">Ваш кошик порожній</Typography>
             ) : (
                 <>
                     {cart.items.map(item => (
@@ -76,15 +90,26 @@ const Cart = () => {
                             onRemove={handleRemoveItem}
                         />
                     ))}
-                    <div className="mt-4">
-                        <Typography variant="h6">Загальна сума: ${calculateTotal().toFixed(2)}</Typography>
-                        <Button variant="contained" color="primary" onClick={handleCheckout}>
-                            Перейти до оформлення
+                    <Box mt={3} p={2} bgcolor="whitesmoke" borderRadius={2} textAlign="right">
+                        <Typography variant="h6" fontWeight="bold">Загальна сума: ${calculateTotal().toFixed(2)}</Typography>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            size="large"
+                            onClick={handleCheckout}
+                            sx={{ mt: 2, borderRadius: 3 }}
+                        >
+                            ✅ Оформити замовлення
                         </Button>
-                    </div>
+                    </Box>
                 </>
             )}
-        </div>
+            {successMessage && (
+                <Alert severity="success" sx={{ mt: 3 }}>
+                    {successMessage}
+                </Alert>
+            )}
+        </Box>
     );
 };
 
