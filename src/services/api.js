@@ -43,10 +43,19 @@ export const productsService = {
 };
 
 export const ordersService = {
+    getAllOrders: () => api.get('/orders'),
     create: (orderItems) => api.post('/orders', orderItems),
     getById: (id) => api.get(`/orders/${id}`),
     getUserOrders: () => api.get('/orders/user'),
-    updateStatus: (id, status) => api.put(`/orders/${id}/status`, status)
+    updateStatus: (id, status) =>
+        api.put(`/orders/${id}/status`, status, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+
+
 };
 
 export const cartService = {

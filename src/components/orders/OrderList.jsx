@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ordersService } from '../../services/api';
-import { Box, Typography, List, ListItem, ListItemText, Divider, Alert } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, Divider, Button, Alert } from '@mui/material';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const OrderList = () => {
     const [orders, setOrders] = useState([]);
@@ -19,20 +21,42 @@ const OrderList = () => {
                 setLoading(false);
             }
         };
-
         fetchOrders();
     }, []);
+
+    const translateStatus = (status) => {
+        const statusMap = {
+            0: 'В очікуванні',
+            1: 'Обробка',
+            2: 'Відправлено',
+            3: 'Доставлено',
+            4: 'Скасовано',
+        };
+        return statusMap[status] || 'Невідомий статус';
+    };
+
+    const handleCancelOrder = async (orderId) => {
+        try {
+            await ordersService.updateStatus(orderId, 4);
+            setOrders((prevOrders) => prevOrders.map(order =>
+                order.id === orderId ? { ...order, status: 4 } : order
+            ));
+            toast.success('Замовлення успішно скасовано');
+        } catch (err) {
+            toast.error('Не вдалося скасувати замовлення');
+        }
+    };
 
     if (loading) return <Box sx={{ textAlign: 'center', mt: 4 }}>Завантаження...</Box>;
     if (error) return <Alert severity="error">{error}</Alert>;
 
     return (
-        <Box sx={{ p: 4 }}>
-            <Typography variant="h4" gutterBottom>
+        <Box sx={{ p: 4, maxWidth: 800, margin: 'auto' }}>
+            <Typography variant="h4" gutterBottom align="center">
                 Мої замовлення
             </Typography>
             {orders.length === 0 ? (
-                <Typography>У вас немає замовлень</Typography>
+                <Typography align="center">У вас немає замовлень</Typography>
             ) : (
                 <List>
                     {orders.map((order) => (
@@ -43,16 +67,29 @@ const OrderList = () => {
                                 sx={{
                                     textDecoration: 'none',
                                     '&:hover': { backgroundColor: '#f5f5f5' },
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
                                 }}
                             >
                                 <ListItemText
                                     primary={`Замовлення #${order.orderNumber}`}
-                                    secondary={
-                                        <>
-                                            Статус: {order.status} | Дата: {new Date(order.createdAt).toLocaleDateString()} | Сума: ${order.totalAmount}
-                                        </>
-                                    }
+                                    secondary={`Статус: ${translateStatus(order.status)} | Дата: ${new Date(order.createdAt).toLocaleDateString()} | Сума: ${order.totalAmount} ₴`}
                                 />
+                                {order.status === 0 ? (
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleCancelOrder(order.id);
+                                        }}
+                                    >
+                                        Скасувати
+                                    </Button>
+                                ) : order.status === 4 ? (
+                                    <Typography color="error" fontWeight="bold">Скасовано</Typography>
+                                ) : null}
                             </ListItem>
                             <Divider />
                         </React.Fragment>

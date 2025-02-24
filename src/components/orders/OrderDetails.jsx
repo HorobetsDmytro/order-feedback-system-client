@@ -21,9 +21,19 @@ const OrderDetails = () => {
                 setLoading(false);
             }
         };
-
         fetchOrder();
     }, [id]);
+
+    const translateStatus = (status) => {
+        const statusMap = {
+            0: 'В очікуванні',
+            1: 'Обробка',
+            2: 'Відправлено',
+            3: 'Доставлено',
+            4: 'Скасовано',
+        };
+        return statusMap[status] || 'Невідомий статус';
+    };
 
     if (loading) return <Box sx={{ textAlign: 'center', mt: 4 }}>Завантаження...</Box>;
     if (error) return <Alert severity="error">{error}</Alert>;
@@ -35,7 +45,7 @@ const OrderDetails = () => {
                 Деталі замовлення #{order.orderNumber}
             </Typography>
             <Typography>
-                Статус: {order.status} | Дата: {new Date(order.createdAt).toLocaleDateString()} | Сума: ${order.totalAmount}
+                Статус: {translateStatus(order.status)} | Дата: {new Date(order.createdAt).toLocaleDateString()} | Сума: {order.totalAmount} ₴
             </Typography>
             <Typography variant="h6" mt={2}>
                 Товари:
@@ -45,7 +55,7 @@ const OrderDetails = () => {
                     <ListItem key={item.id}>
                         <ListItemText
                             primary={item.product.name}
-                            secondary={`Кількість: ${item.quantity} | Ціна за одиницю: $${item.unitPrice}`}
+                            secondary={`Кількість: ${item.quantity} | Ціна за одиницю: ${item.unitPrice} ₴`}
                         />
                     </ListItem>
                 ))}

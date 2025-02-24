@@ -16,6 +16,7 @@ import theme from './theme';
 import AdminProductsPage from "./components/admin/AdminProductsPage";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AdminOrdersPage from "./components/admin/AdminOrdersPage";
 
 const App = () => {
   return (
@@ -69,8 +70,16 @@ const App = () => {
                               </PrivateRoute>
                           }
                       />
+                      <Route
+                          path="/admin/orders"
+                          element={
+                              <PrivateRoute roles={['Admin']}>
+                                  <AdminOrdersPage />
+                              </PrivateRoute>
+                          }
+                      />
                   </Routes>
-                  <ToastContainer />
+                  <ToastContainer autoClose={1500} closeOnClick={true} pauseOnHover={false}/>
               </ErrorBoundary>
           </Router>
       </ThemeProvider>
