@@ -69,7 +69,7 @@ export const cartService = {
 export const reviewsService = {
     create: (reviewData) => api.post('/reviews', reviewData),
     update: (id, reviewData) => api.put(`/reviews/${id}`, reviewData),
-    getOrderReviews: (orderId) => api.get(`/reviews/order/${orderId}`),
+    getProductReviews: (productId) => api.get(`/reviews/product/${productId}/reviews`),
     getFilteredReviews: (rating) => api.get(`/reviews/filter?rating=${rating}`),
     getProductRating: (productId) => api.get(`/reviews/product/${productId}/rating`)
 };

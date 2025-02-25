@@ -1,57 +1,64 @@
 import React, { useState } from 'react';
 import { reviewsService } from '../../services/api';
-import { Box, Typography, TextField, Button, Rating, Alert } from '@mui/material';
 
-const ReviewForm = ({ orderId }) => {
-    const [formData, setFormData] = useState({ rating: 5, comment: '' });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
+const ReviewForm = ({ orderId, onSubmit }) => {
+    const [reviewForm, setReviewForm] = useState({
+        rating: 5,
+        comment: ''
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setReviewForm((prev) => ({
+            ...prev,
+            [name]: value
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
-        setSuccess(false);
+
+        const reviewData = {
+            orderId: orderId, // Використовуємо правильний ID замовлення
+            rating: reviewForm.rating,
+            comment: reviewForm.comment
+        };
 
         try {
-            await reviewsService.create({ orderId, ...formData });
-            setSuccess(true);
-        } catch (err) {
-            setError(err.response?.data || 'Не вдалося надіслати відгук');
-        } finally {
-            setLoading(false);
+            await reviewsService.create(reviewData);
+            onSubmit(); // Опціонально: виклик функції для оновлення UI після успішного створення
+        } catch (error) {
+            console.error('Failed to submit review:', error);
         }
     };
 
-    if (success) {
-        return <Alert severity="success">Дякуємо за ваш відгук!</Alert>;
-    }
-
     return (
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 4 }}>
-            {error && <Alert severity="error">{error}</Alert>}
-            <Typography variant="h6">Оцінка:</Typography>
-            <Rating
-                name="rating"
-                value={formData.rating}
-                onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) })}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                label="Коментар"
-                multiline
-                rows={4}
-                fullWidth
-                value={formData.comment}
-                onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                sx={{ mb: 2 }}
-                required
-            />
-            <Button type="submit" variant="contained" color="primary" disabled={loading}>
-                {loading ? 'Надсилається...' : 'Надіслати відгук'}
-            </Button>
-        </Box>
+        <form onSubmit={handleSubmit}>
+            <div>
+                <label>Rating:</label>
+                <select
+                    name="rating"
+                    value={reviewForm.rating}
+                    onChange={handleChange}
+                >
+                    {[5, 4, 3, 2, 1].map((num) => (
+                        <option key={num} value={num}>
+                            {num} Stars
+                        </option>
+                    ))}
+                </select>
+            </div>
+            <div>
+                <label>Comment:</label>
+                <textarea
+                    name="comment"
+                    value={reviewForm.comment}
+                    onChange={handleChange}
+                    required
+                />
+            </div>
+            <button type="submit">Submit Review</button>
+        </form>
     );
 };
 

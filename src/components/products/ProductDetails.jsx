@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { productsService, reviewsService, cartService } from '../../services/api';
+import {productsService, reviewsService, cartService, ordersService} from '../../services/api';
 import {
     Box,
     Typography,
@@ -9,15 +9,12 @@ import {
     CircularProgress,
     Alert,
     TextField,
-    List,
-    ListItem,
-    ListItemText,
-    Divider,
     CardMedia,
     Grid
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
+import ReviewList from "../reviews/ReviewList";
 
 const ProductDetails = () => {
     const { id } = useParams();
@@ -32,16 +29,29 @@ const ProductDetails = () => {
 
     useEffect(() => {
         const fetchProductDetails = async () => {
+            if (!id || isNaN(id)) {
+                setError('Некоректний ідентифікатор товару');
+                setLoading(false);
+                return;
+            }
+
             try {
                 const [productResponse, ratingResponse, reviewsResponse] = await Promise.all([
                     productsService.getById(id),
                     reviewsService.getProductRating(id),
-                    reviewsService.getOrderReviews(id)
+                    reviewsService.getProductReviews(id)
                 ]);
+
+                if (!productResponse.data) {
+                    throw new Error('Product not found');
+                }
+
                 setProduct(productResponse.data);
-                setRating(ratingResponse.data);
-                setReviews(reviewsResponse.data);
+                setRating(ratingResponse.data || 0);
+                setReviews(reviewsResponse.data || []);
             } catch (err) {
+                console.error('Error fetching product details:', err);
+                console.error('Error response:', err.response?.data);
                 setError('Не вдалося завантажити деталі товару');
             } finally {
                 setLoading(false);
@@ -57,27 +67,49 @@ const ProductDetails = () => {
 
     const handleSubmitReview = async () => {
         if (!user) {
-            toast.error('Будь ласка, увійдіть, щоб залишити відгук');
+            toast.error('Будь ласка, увійдіть в систему, щоб залишити відгук');
             return;
         }
         if (!reviewForm.comment.trim()) {
             toast.warning('Будь ласка, введіть коментар');
             return;
         }
+
         setSubmitting(true);
         try {
-            await reviewsService.create({
-                productId: id,
+            const userOrdersResponse = await ordersService.getUserOrders();
+            const userOrders = userOrdersResponse.data;
+
+            const orderWithProduct = userOrders.find(order =>
+                order.orderItems.some(item => item.productId === product.id)
+            );
+
+            if (!orderWithProduct) {
+                toast.error('Ви не можете залишити відгук, оскільки не маєте замовлення на цей товар.');
+                return;
+            }
+
+            const reviewData = {
+                orderId: orderWithProduct.id,
+                productId: product.id,
                 rating: reviewForm.rating,
                 comment: reviewForm.comment
-            });
+            };
+
+            console.log('Sending review data:', reviewData);
+
+            await reviewsService.create(reviewData);
+
             setReviews((prev) => [
                 ...prev,
-                { rating: reviewForm.rating, comment: reviewForm.comment, createdAt: new Date().toISOString() }
+                { ...reviewData, createdAt: new Date().toISOString() }
             ]);
+
             setReviewForm({ rating: 5, comment: '' });
+
             toast.success('Відгук успішно додано!');
         } catch (err) {
+            console.error('Error details:', err.response?.data);
             toast.error('Не вдалося залишити відгук');
         } finally {
             setSubmitting(false);
@@ -95,8 +127,7 @@ const ProductDetails = () => {
         }
 
         try {
-            // Викликаємо метод addItem з cartService
-            await cartService.addItem(product.id, 1); // Додаємо один екземпляр товару
+            await cartService.addItem(product.id, 1);
             toast.success('Товар додано до кошика!', {
                 autoClose: 1500,
                 closeOnClick: true,
@@ -196,24 +227,7 @@ const ProductDetails = () => {
                 </Button>
             </Box>
             <Box sx={{ mt: 4 }}>
-                <Typography variant="h6">Відгуки</Typography>
-                {reviews.length > 0 ? (
-                    <List>
-                        {reviews.map((review, index) => (
-                            <React.Fragment key={index}>
-                                <ListItem>
-                                    <ListItemText
-                                        primary={`Оцінка: ${review.rating}`}
-                                        secondary={review.comment}
-                                    />
-                                </ListItem>
-                                <Divider />
-                            </React.Fragment>
-                        ))}
-                    </List>
-                ) : (
-                    <Typography>Відгуків поки немає.</Typography>
-                )}
+                <ReviewList productId={product.id} />
             </Box>
         </Box>
     );

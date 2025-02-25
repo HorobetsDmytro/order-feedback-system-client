@@ -1,22 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { reviewsService } from '../../services/api';
-import { Box, Typography, List, ListItem, ListItemText, Divider, Alert, Select, MenuItem } from '@mui/material';
+import {
+    Box,
+    Typography,
+    List,
+    ListItem,
+    Divider,
+    Alert,
+    Button,
+    TextField,
+    Rating,
+    CircularProgress
+} from '@mui/material';
+import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
-const ReviewList = ({ productId, orderId }) => {
+const ReviewList = ({ productId }) => {
+    const { user } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filterRating, setFilterRating] = useState(0);
+    const [editingReview, setEditingReview] = useState(null);
+    const [updatedReview, setUpdatedReview] = useState({ rating: 5, comment: '' });
 
     useEffect(() => {
         const fetchReviews = async () => {
             try {
-                let response;
-                if (orderId) {
-                    response = await reviewsService.getOrderReviews(orderId);
-                } else if (filterRating > 0) {
-                    response = await reviewsService.getFilteredReviews(filterRating);
-                }
+                const response = await reviewsService.getProductReviews(productId);
                 setReviews(response.data);
             } catch (err) {
                 setError('Не вдалося завантажити відгуки');
@@ -26,49 +36,96 @@ const ReviewList = ({ productId, orderId }) => {
         };
 
         fetchReviews();
-    }, [productId, orderId, filterRating]);
+    }, [productId]);
 
-    const renderStars = (rating) => {
-        return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    const handleEdit = (review) => {
+        setEditingReview(review.id);
+        setUpdatedReview({ rating: review.rating, comment: review.comment });
     };
 
-    if (loading) return <Box sx={{ textAlign: 'center', mt: 4 }}>Завантаження відгуків...</Box>;
+    const handleUpdateReview = async (reviewId) => {
+        try {
+            await reviewsService.update(reviewId, updatedReview);
+            setReviews((prevReviews) =>
+                prevReviews.map((r) => (r.id === reviewId ? { ...r, ...updatedReview } : r))
+            );
+            setEditingReview(null);
+            toast.success('Відгук оновлено!');
+        } catch (err) {
+            toast.error('Не вдалося оновити відгук');
+        }
+    };
+
+    if (loading) return <CircularProgress />;
     if (error) return <Alert severity="error">{error}</Alert>;
 
     return (
-        <Box sx={{ p: 4 }}>
-            <Typography variant="h4" gutterBottom>
-                Відгуки
-            </Typography>
-            <Select
-                value={filterRating}
-                onChange={(e) => setFilterRating(Number(e.target.value))}
-                sx={{ mb: 2 }}
-                fullWidth
-            >
-                <MenuItem value={0}>Всі оцінки</MenuItem>
-                {[5, 4, 3, 2, 1].map((rating) => (
-                    <MenuItem key={rating} value={rating}>
-                        {rating} Зірки
-                    </MenuItem>
-                ))}
-            </Select>
-            {reviews.length === 0 ? (
-                <Typography>Відгуків ще немає</Typography>
-            ) : (
+        <Box sx={{ mt: 4 }}>
+            <Typography variant="h6">Відгуки</Typography>
+            {reviews.length > 0 ? (
                 <List>
                     {reviews.map((review) => (
                         <React.Fragment key={review.id}>
-                            <ListItem>
-                                <ListItemText
-                                    primary={renderStars(review.rating)}
-                                    secondary={review.comment}
-                                />
+                            <ListItem alignItems="flex-start">
+                                <Box sx={{ width: '100%' }}>
+                                    <Typography variant="subtitle2" color="textSecondary">
+                                        Автор: {review.user.username || 'Невідомий'} | Дата: {new Date(review.createdAt).toLocaleDateString()}
+                                    </Typography>
+
+                                    {editingReview === review.id ? (
+                                        <Rating
+                                            name="rating"
+                                            value={updatedReview.rating}
+                                            onChange={(e, newValue) =>
+                                                setUpdatedReview((prev) => ({ ...prev, rating: newValue }))
+                                            }
+                                            sx={{ mb: 1 }}
+                                        />
+                                    ) : (
+                                        <Rating value={review.rating} readOnly sx={{ mb: 1 }} />
+                                    )}
+
+                                    {editingReview === review.id ? (
+                                        <>
+                                            <TextField
+                                                fullWidth
+                                                multiline
+                                                rows={3}
+                                                value={updatedReview.comment}
+                                                onChange={(e) =>
+                                                    setUpdatedReview((prev) => ({ ...prev, comment: e.target.value }))
+                                                }
+                                                sx={{ mt: 1 }}
+                                            />
+                                            <Button
+                                                variant="contained"
+                                                onClick={() => handleUpdateReview(review.id)}
+                                                sx={{ mt: 1 }}
+                                            >
+                                                Зберегти
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Typography>{review.comment}</Typography>
+                                    )}
+
+                                    {user?.id === review.userId && editingReview !== review.id && (
+                                        <Button
+                                            variant="outlined"
+                                            onClick={() => handleEdit(review)}
+                                            sx={{ mt: 1 }}
+                                        >
+                                            Редагувати
+                                        </Button>
+                                    )}
+                                </Box>
                             </ListItem>
                             <Divider />
                         </React.Fragment>
                     ))}
                 </List>
+            ) : (
+                <Typography>Відгуків поки немає.</Typography>
             )}
         </Box>
     );
